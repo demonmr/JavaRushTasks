@@ -1,100 +1,206 @@
 package com.javarush.task.task35.task3513;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Model {
-    private static final int FIELD_WIDTH = 4;
-    private Tile[][] gameTiles;
-    int score;
-    int maxTile = 2;
-    public Model() {
-        this.score=0;
-        this.maxTile=0;
-        resetGameTiles ();
-
-    }
+	private static final int FIELD_WIDTH = 4;
+	private Stack<Tile[][]> previousStates =new Stack<>();
+	private Stack<Integer> previousScores =new Stack<>();
+	private boolean isSaveNeeded = true;
 
 
-    /*Метод для получения списка пустых ячеек на поле игры*/
-    private List<Tile> getEmptyTiles(){
-        return Arrays.stream(gameTiles).flatMap(Arrays::stream)
-                .filter(Tile::isEmpty).collect(Collectors.toList());
-    }
-    private void addTile(){
-        List<Tile> emptyTiles = getEmptyTiles();
-        if(emptyTiles.size() > 0)
-            emptyTiles.get((int)(emptyTiles.size() * Math.random())).value = (Math.random() < 0.9 ? 2 : 4);
-    }
-    public void resetGameTiles(){
-        this.gameTiles = new Tile[FIELD_WIDTH][FIELD_WIDTH];
-        for (int i = 0; i < FIELD_WIDTH; i++) {
-            for (int j = 0; j < FIELD_WIDTH; j++) {
-                gameTiles[i][j] = new Tile();
-            }
-        }
-        addTile();
-        addTile();
-    }
-    private boolean compressTiles(Tile[] tiles){
-        List<Tile> temp = new ArrayList<> ();
-        List<Tile> nuls = new ArrayList<> ();
-        boolean flag=false;
-        for (int i = 0; i <tiles.length; i++) {
-            if (tiles[i].value==0&&i!=tiles.length-1){
-                flag=true;
-            }
-            if (tiles[i].value==0){
-                nuls.add (tiles[i]);
-            }
-            else {
-                temp.add (tiles[i]);
-            }
-        }
+	private Tile[][] gameTiles;
+	int score;
+	int maxTile = 2;
 
-        if (temp.size ()!=0) {
-            temp.addAll (nuls);
-            for (int i = 0; i <temp.size () ; i++) {
-                tiles[i]=temp.get (i);
-            }
-        }
-       return flag;
+	public Model() {
+		this.score = 0;
+		this.maxTile = 0;
+		resetGameTiles();
 
-    }
-    private boolean mergeTiles(Tile[] tiles){
+	}
 
-        compressTiles (tiles);
-        Tile start = tiles[0];
-        boolean flag=false;
-        for (int i = 1; i <tiles.length ; i++) {
-            if (start.value==tiles[i].value){
-                start.value+=tiles[i].value;
-                score+= start.value;
-                tiles[i].value=0;
-                flag=true;
-                if (start.value>maxTile){
-                    maxTile=start.value;
-                }
 
-            }
-            else {
-                start = tiles[i];
-            }
+	/*Метод для получения списка пустых ячеек на поле игры*/
+	private List<Tile> getEmptyTiles() {
+		return Arrays.stream(gameTiles).flatMap(Arrays::stream)
+				.filter(Tile::isEmpty).collect(Collectors.toList());
+	}
 
-        }
-        compressTiles (tiles);
-        return flag;
-    }
-    public void left(){
-        for (int i = 0; i <gameTiles.length ; i++) {
-          if (compressTiles (gameTiles[i])||mergeTiles (gameTiles[i]))
-          {
-              addTile ();
-          }
+	private void addTile() {
+		List<Tile> emptyTiles = getEmptyTiles();
+		if (emptyTiles.size() > 0)
+			emptyTiles.get((int) (emptyTiles.size() * Math.random())).value = (Math.random() < 0.9 ? 2 : 4);
+	}
 
-        }
-    }
+	public void resetGameTiles() {
+		this.gameTiles = new Tile[FIELD_WIDTH][FIELD_WIDTH];
+		for (int i = 0; i < FIELD_WIDTH; i++) {
+			for (int j = 0; j < FIELD_WIDTH; j++) {
+				gameTiles[i][j] = new Tile();
+			}
+		}
+		addTile();
+		addTile();
+	}
+
+	private boolean compressTiles(Tile[] tiles) {
+		boolean flag = false;
+		Tile temps;
+		for (int i = 0; i < tiles.length; i++) {
+			for (int j = 0; j < tiles.length; j++) {
+				if (i < j && tiles[i].value == 0 && tiles[j].value > 0) {
+					temps = tiles[i];
+					tiles[i] = tiles[j];
+					tiles[j] = temps;
+					flag = true;
+				}
+			}
+		}
+
+		return flag;
+
+	}
+
+	private boolean mergeTiles(Tile[] tiles) {
+		boolean isChanged = false;
+		for (int j = 0; j < 3; j++) {
+			if (tiles[j].getValue() != 0 && tiles[j].getValue() == tiles[j + 1].getValue()) {
+				tiles[j].setValue(tiles[j].getValue() * 2);
+				tiles[j + 1].setValue(0);
+				if (tiles[j].getValue() > maxTile) maxTile = tiles[j].getValue();
+				score += tiles[j].getValue();
+				isChanged = true;
+
+			}
+		}
+
+		if (isChanged) {
+			Tile temp;
+			for (int j = 0; j < 3; j++) {
+				if (tiles[j].getValue() == 0 && tiles[j + 1].getValue() != 0) {
+					temp = tiles[j];
+					tiles[j] = tiles[j + 1];
+					tiles[j + 1] = temp;
+				}
+			}
+		}
+
+		return isChanged;
+	}
+
+	public void left() {
+		if (isSaveNeeded)
+		{
+			saveState(gameTiles);
+		}
+
+		boolean hasChanged = moved();
+
+		if(hasChanged) {
+			addTile();
+			isSaveNeeded = true;
+		}
+
+	}
+
+	private boolean moved() {
+		boolean hasChanged = false;
+		for(int i = 0; i < gameTiles.length; i++) {
+			if(compressTiles(gameTiles[i]) | mergeTiles(gameTiles[i])) {
+				hasChanged = true;
+			}
+		}
+		return hasChanged;
+	}
+
+	public void right() {
+saveState(gameTiles);
+		rotate();
+		rotate();
+		if (moved()) {
+			addTile();
+		}
+		rotate();
+		rotate();
+	}
+	public void up() {
+		saveState(gameTiles);
+		rotate();
+		rotate();
+		rotate();
+		if (moved()) {
+			addTile();
+		}
+		rotate();
+
+	}
+	public void down() {
+		saveState(gameTiles);
+		rotate();
+		if (moved()) {
+			addTile();
+		}
+		rotate();
+		rotate();
+		rotate();
+	}
+
+	private void rotate(){
+		Tile[][] tiles = new Tile[FIELD_WIDTH][FIELD_WIDTH];
+		for (int i = 0; i <gameTiles.length ; i++) {
+			for (int j = 0; j <gameTiles[i].length ; j++) {
+				tiles[i][tiles.length-1-j] = gameTiles[j][i];
+			}
+		}
+		gameTiles = tiles.clone();
+
+	}
+
+	public Tile[][] getGameTiles() {
+		return gameTiles;
+	}
+	public boolean canMove(){
+		for (int i = 0; i <FIELD_WIDTH ; i++) {
+			for (int j = 0; j <FIELD_WIDTH ; j++) {
+				if (gameTiles[i][j].value==0){
+					return true;
+				}
+				if (i!=0&&gameTiles[i-1][j].value==gameTiles[i][j].value){
+					return true;
+				}
+				if (j!=0&&gameTiles[i][j-1].value==gameTiles[i][j].value){
+					return true;
+				}
+				if (i<FIELD_WIDTH-1&&gameTiles[i+1][j].value==gameTiles[i][j].value){
+					return true;
+				}
+				if (j<FIELD_WIDTH-1&&gameTiles[i][j+1].value==gameTiles[i][j].value){
+					return true;
+				}
+
+			}
+		}
+		return false;
+	}
+	private void saveState(Tile[][] tiles){
+		Tile[][] save = new Tile[FIELD_WIDTH][FIELD_WIDTH];
+		for (int i = 0; i <save.length ; i++) {
+			for (int j = 0; j <save[i].length ; j++) {
+				save[i][j] = new Tile(gameTiles[i][j].value);
+			}
+		}
+
+		previousStates.push(save);
+		previousScores.push(score);
+		isSaveNeeded = false;
+	}
+	public void rollback(){
+		if (!previousStates.isEmpty()&&!previousScores.isEmpty()){
+		gameTiles = previousStates.pop();
+		score = previousScores.pop();
+		isSaveNeeded = true;
+		}
+	}
 }
