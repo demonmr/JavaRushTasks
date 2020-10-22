@@ -17,7 +17,7 @@ public class Solution {
         Solution solution = new Solution();
         print(solution.getUsers());
         print(solution.getLocations());
-        print(solution.getSubscription());
+        print(solution.getSubscriptions());
     }
 
     public static void print(List list) {
@@ -28,7 +28,7 @@ public class Solution {
         }
     }
 
-    public static List<Subscription> getSubscription(){
+    public List<Subscription> getSubscriptions(){
         return new AbstractDbSelectExecutor<Subscription>(){
 
             @Override
@@ -148,7 +148,7 @@ public class Solution {
 
             @Override
             public String getQuery() {
-                return String.format("SELECT * FROM %S",Subscription.class.getSimpleName());
+                return "SELECT * FROM SUBSCRIPTION";
             }
         }.execute();
     }
@@ -271,7 +271,7 @@ public class Solution {
 
             @Override
             public String getQuery() {
-                return String.format ("SELECT * FROM %S",User.class.getSimpleName ()) ;
+                return "SELECT * FROM USER" ;
             }
         }.execute();
 
@@ -395,7 +395,7 @@ public class Solution {
 
             @Override
             public String getQuery() {
-                return String.format("SELECT * FROM %S",Location.class.getSimpleName());
+                return "SELECT * FROM LOCATION";
             }
         }.execute();
     }
@@ -518,7 +518,7 @@ public class Solution {
 
             @Override
             public String getQuery() {
-                return String.format("SELECT * FROM %S",Server.class.getSimpleName());
+                return "SELECT * FROM SERVER";
             }
         }.execute();
     }
